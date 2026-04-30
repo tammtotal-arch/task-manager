@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>業務マネージャー</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Noto Sans JP',sans-serif;background:#f5f5f0;color:#1a1a1a;min-height:100vh}
+.app{max-width:420px;margin:0 auto;padding:1rem}
+.header{display:flex;align-items:center;gap:12px;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid #e0e0d8}
+.avatar{width:40px;height:40px;border-radius:50%;background:#e8f0fe;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.header-text h1{font-size:17px;font-weight:600;color:#1a1a1a}
+.header-text p{font-size:12px;color:#888;margin-top:2px}
+.notif-bar{background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:1.25rem;display:flex;align-items:center;gap:12px;border:1px solid #e8e8e0;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.notif-icon{font-size:20px;flex-shrink:0}
+.notif-info{flex:1}
+.notif-info strong{font-size:14px;font-weight:600;display:block}
+.notif-info span{font-size:12px;color:#888}
+#notif-toggle{background:#f0f0e8;border:1px solid #d0d0c8;border-radius:20px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;transition:.2s;white-space:nowrap}
+#notif-toggle.on{background:#e6f4ea;border-color:#81c784;color:#2e7d32}
+.schedule-card{background:#fff;border-radius:12px;padding:1rem;border:1px solid #e8e8e0;margin-bottom:1.25rem}
+.schedule-card h3{font-size:12px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.time-row{display:flex;align-items:center;gap:8px;padding:6px 0}
+.time-row+.time-row{border-top:1px solid #f0f0e8}
+.time-label{font-size:13px;color:#666;width:40px;flex-shrink:0}
+.time-row input[type=time]{flex:1;padding:6px 10px;border:1px solid #ddd;border-radius:8px;font-size:13px;background:#fafaf8;color:#1a1a1a}
+.time-toggle-btn{background:#f0f0e8;border:1px solid #d0d0c8;border-radius:16px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer;color:#888;transition:.15s}
+.time-toggle-btn.active{background:#e8f0fe;border-color:#90caf9;color:#1565c0}
+.section{margin-bottom:1.5rem}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.section-title{font-size:12px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.06em}
+.progress-text{font-size:12px;color:#aaa}
+.undone-badge{background:#fff3e0;color:#e65100;border-radius:99px;font-size:11px;padding:3px 10px;font-weight:600}
+.task-item{display:flex;align-items:center;gap:10px;padding:11px 13px;background:#fff;border:1px solid #e8e8e0;border-radius:10px;margin-bottom:6px;cursor:pointer;transition:background .12s}
+.task-item:hover{background:#fafaf8}
+.task-item.done{opacity:.45}
+.task-item.done .task-label{text-decoration:line-through}
+.checkbox{width:22px;height:22px;border-radius:50%;border:1.5px solid #ccc;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;transition:.15s}
+.task-item.done .checkbox{background:#4caf50;border-color:#4caf50;color:#fff}
+.task-label{font-size:14px;color:#1a1a1a;flex:1;line-height:1.4}
+.task-time{font-size:11px;color:#bbb;flex-shrink:0}
+.task-delete{background:none;border:none;cursor:pointer;font-size:16px;color:#ccc;padding:2px 4px;border-radius:4px;flex-shrink:0;opacity:0;transition:.15s}
+.task-item:hover .task-delete{opacity:1}
+.add-row{display:flex;gap:8px;margin-top:8px}
+.add-row input{flex:1;padding:9px 12px;border:1px solid #ddd;border-radius:10px;font-size:14px;background:#fff;color:#1a1a1a}
+.add-row input::placeholder{color:#bbb}
+.add-row button{background:#1a1a1a;color:#fff;border:none;border-radius:10px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.add-row button:hover{background:#333}
+.reset-btn{width:100%;padding:10px;background:#fff;border:1px solid #e0e0d8;border-radius:10px;font-size:13px;cursor:pointer;color:#888;margin-top:4px}
+.reset-btn:hover{background:#f5f5f0}
+.popup{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#1a1a1a;color:#fff;border-radius:12px;padding:12px 20px;font-size:13px;max-width:320px;text-align:center;opacity:0;transition:.3s;pointer-events:none;z-index:999;line-height:1.4}
+.popup.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.notif-preview{background:#fff8e1;border:1px solid #ffe082;border-radius:10px;padding:10px 13px;margin-bottom:1.25rem;font-size:12px;color:#6d4c00;line-height:1.6}
+.notif-preview strong{display:block;font-size:13px;margin-bottom:4px;color:#f57f17}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="avatar">👷</div>
+    <div class="header-text">
+      <h1>業務マネージャー</h1>
+      <p id="greeting">おはようございます！</p>
+    </div>
+  </div>
+
+  <div class="notif-bar">
+    <span class="notif-icon">🔔</span>
+    <div class="notif-info">
+      <strong>スマホ通知</strong>
+      <span id="notif-status">タップしてオンにする</span>
+    </div>
+    <button id="notif-toggle" onclick="toggleNotif()">オフ</button>
+  </div>
+
+  <div class="schedule-card">
+    <h3>通知タイミング</h3>
+    <div class="time-row">
+      <span class="time-label">朝</span>
+      <input type="time" id="time-morning" value="07:00">
+      <button class="time-toggle-btn active" id="tog-morning" onclick="toggleTime('morning')">ON</button>
+    </div>
+    <div class="time-row">
+      <span class="time-label">昼</span>
+      <input type="time" id="time-noon" value="12:00">
+      <button class="time-toggle-btn" id="tog-noon" onclick="toggleTime('noon')">OFF</button>
+    </div>
+    <div class="time-row">
+      <span class="time-label">夕方</span>
+      <input type="time" id="time-evening" value="17:00">
+      <button class="time-toggle-btn active" id="tog-evening" onclick="toggleTime('evening')">ON</button>
+    </div>
+  </div>
+
+  <div class="notif-preview" id="notif-preview">
+    <strong>📱 通知のイメージ</strong>
+    「未完了 3件：点呼チェック、ゆうメール仕分け、佐川CSV…<br>やり忘れていませんか？」
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">定型チェック</span>
+      <span class="progress-text" id="daily-progress">0/0 完了</span>
+    </div>
+    <div id="daily-list"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">今日のタスク</span>
+      <span class="undone-badge" id="free-undone" style="display:none"></span>
+    </div>
+    <div id="free-list"></div>
+    <div class="add-row">
+      <input type="text" id="free-input" placeholder="タスクを追加...">
+      <button onclick="addFreeTask()">追加</button>
+    </div>
+  </div>
+
+  <button class="reset-btn" onclick="resetDaily()">🔄 定型チェックをリセット（翌日用）</button>
+</div>
+
+<div class="popup" id="popup"></div>
+
+<script>
+const DAILY = [
+  {label:"点呼チェック",time:"出勤時"},
+  {label:"ゆうメール仕分け確認",time:"午前"},
+  {label:"佐川CSVデータ処理",time:"午前"},
+  {label:"ドライバー配車確認",time:"午前"},
+  {label:"配送ルート最終確認",time:"午前"},
+  {label:"午後便の準備",time:"昼"},
+  {label:"スタッフシフト確認",time:"夕方"},
+  {label:"翌日準備・引き継ぎ",time:"退勤前"},
+];
+
+let dailyDone = JSON.parse(localStorage.getItem('jls_daily')||'[]');
+let freeTasks = JSON.parse(localStorage.getItem('jls_free')||'[]');
+let timeToggles = JSON.parse(localStorage.getItem('jls_toggles')||'{"morning":true,"noon":false,"evening":true}');
+let notifOn = false;
+let notifTimers = [];
+
+function save(){
+  localStorage.setItem('jls_daily', JSON.stringify(dailyDone));
+  localStorage.setItem('jls_free', JSON.stringify(freeTasks));
+  localStorage.setItem('jls_toggles', JSON.stringify(timeToggles));
+}
+
+function greeting(){
+  const h = new Date().getHours();
+  if(h < 11) return 'おはようございます！';
+  if(h < 17) return 'お疲れさまです！';
+  return 'お疲れさまでした！';
+}
+
+function renderDaily(){
+  const el = document.getElementById('daily-list');
+  el.innerHTML = '';
+  DAILY.forEach((t,i)=>{
+    const done = dailyDone.includes(i);
+    const div = document.createElement('div');
+    div.className = 'task-item' + (done?' done':'');
+    div.innerHTML = `<div class="checkbox">${done?'✓':''}</div><span class="task-label">${t.label}</span><span class="task-time">${t.time}</span>`;
+    div.onclick = ()=>{
+      if(done) dailyDone = dailyDone.filter(x=>x!==i);
+      else dailyDone.push(i);
+      save(); renderDaily();
+    };
+    el.appendChild(div);
+  });
+  document.getElementById('daily-progress').textContent = `${dailyDone.length}/${DAILY.length} 完了`;
+}
+
+function renderFree(){
+  const el = document.getElementById('free-list');
+  el.innerHTML = '';
+  freeTasks.forEach((t,i)=>{
+    const div = document.createElement('div');
+    div.className = 'task-item' + (t.done?' done':'');
+    div.innerHTML = `<div class="checkbox">${t.done?'✓':''}</div><span class="task-label">${t.label}</span><button class="task-delete" onclick="deleteFree(${i},event)">✕</button>`;
+    div.onclick = ()=>{ freeTasks[i].done = !freeTasks[i].done; save(); renderFree(); };
+    el.appendChild(div);
+  });
+  const undone = freeTasks.filter(t=>!t.done).length;
+  const badge = document.getElementById('free-undone');
+  if(undone>0){badge.style.display='';badge.textContent=`${undone}件未完了`;}
+  else badge.style.display='none';
+}
+
+function deleteFree(i,e){
+  e.stopPropagation();
+  freeTasks.splice(i,1);
+  save(); renderFree();
+}
+
+function addFreeTask(){
+  const inp = document.getElementById('free-input');
+  const v = inp.value.trim();
+  if(!v) return;
+  freeTasks.push({label:v,done:false});
+  inp.value='';
+  save(); renderFree();
+}
+document.getElementById('free-input').addEventListener('keydown',e=>{if(e.key==='Enter')addFreeTask();});
+
+function resetDaily(){
+  dailyDone = [];
+  save(); renderDaily();
+  showPopup('定型チェックをリセットしました');
+}
+
+function toggleTime(k){
+  timeToggles[k] = !timeToggles[k];
+  const btn = document.getElementById('tog-'+k);
+  btn.textContent = timeToggles[k]?'ON':'OFF';
+  btn.className = 'time-toggle-btn' + (timeToggles[k]?' active':'');
+  save();
+  if(notifOn) scheduleNotifs();
+}
+
+function showPopup(msg){
+  const el = document.getElementById('popup');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 3200);
+}
+
+function getUndoneSummary(){
+  const daily = DAILY.filter((_,i)=>!dailyDone.includes(i)).map(t=>t.label);
+  const free = freeTasks.filter(t=>!t.done).map(t=>t.label);
+  return [...daily,...free];
+}
+
+function fireNotif(){
+  const undone = getUndoneSummary();
+  let body;
+  if(undone.length===0){
+    body = '全タスク完了です！今日もお疲れさまでした 🎉';
+  } else {
+    const preview = undone.slice(0,3).join('、') + (undone.length>3?` ほか${undone.length-3}件`:'');
+    body = `【未完了 ${undone.length}件】\n${preview}\nやり忘れていませんか？`;
+  }
+  new Notification('業務マネージャー', {body, icon: ''});
+}
+
+function scheduleNotifs(){
+  notifTimers.forEach(clearTimeout);
+  notifTimers = [];
+  const slots = [
+    {key:'morning', id:'time-morning'},
+    {key:'noon', id:'time-noon'},
+    {key:'evening', id:'time-evening'},
+  ];
+  const now = new Date();
+  slots.forEach(s=>{
+    if(!timeToggles[s.key]) return;
+    const val = document.getElementById(s.id).value;
+    if(!val) return;
+    const [h,m] = val.split(':').map(Number);
+    const target = new Date();
+    target.setHours(h,m,0,0);
+    if(target<=now) target.setDate(target.getDate()+1);
+    const ms = target - now;
+    const t = setTimeout(()=>{ fireNotif(); scheduleNotifs(); }, ms);
+    notifTimers.push(t);
+  });
+  showPopup('通知スケジュールを更新しました');
+}
+
+async function toggleNotif(){
+  if(!notifOn){
+    if(!('Notification' in window)){
+      showPopup('このブラウザは通知非対応です');
+      return;
+    }
+    const perm = await Notification.requestPermission();
+    if(perm!=='granted'){
+      showPopup('通知を「許可」にしてください（ブラウザ設定）');
+      return;
+    }
+    notifOn = true;
+    scheduleNotifs();
+    document.getElementById('notif-toggle').textContent = 'オン';
+    document.getElementById('notif-toggle').className = 'on';
+    document.getElementById('notif-status').textContent = '設定した時間に確認通知が届きます';
+    showPopup('🔔 通知オン！時間になったらお知らせします');
+  } else {
+    notifOn = false;
+    notifTimers.forEach(clearTimeout);
+    notifTimers = [];
+    document.getElementById('notif-toggle').textContent = 'オフ';
+    document.getElementById('notif-toggle').className = '';
+    document.getElementById('notif-status').textContent = 'タップしてオンにする';
+    showPopup('通知をオフにしました');
+  }
+}
+
+// init
+document.getElementById('greeting').textContent = greeting();
+['morning','noon','evening'].forEach(k=>{
+  const btn = document.getElementById('tog-'+k);
+  btn.textContent = timeToggles[k]?'ON':'OFF';
+  btn.className = 'time-toggle-btn' + (timeToggles[k]?' active':'');
+});
+renderDaily();
+renderFree();
+</script>
+</body>
+</html>
